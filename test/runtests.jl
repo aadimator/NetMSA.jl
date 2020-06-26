@@ -22,4 +22,22 @@ using Test
 
     @test isequal(NetMSA.createPeerMatrix(L), M);
 
+    @test NetMSA.full(M[1, :]) == true;
+
+    @test NetMSA.aligned(M[2, :]) == false;
+
+    @test NetMSA.aligned(M[8, :]) == true;
+
+    @test NetMSA.weight(M[1, :], 0.25, 0.5, 1.0) == 1.0;
+
+    @test NetMSA.weight(M[2, :], 0.25, 0.5, 1.0) == 0.1875;
+
+    @test NetMSA.weight(M[4, :], 0.25, 0.5, 1.0) == 0.125;
+
+    @test NetMSA.weight(M[6, :], 0.25, 0.5, 1.0) == 0.0;
+
+    @test NetMSA.weight(M[8, :], 0.25, 0.5, 1.0) == 0.25;
+
+    @test cumsum(NetMSA.weight.(eachrow(M[2:end, :])))[end] == 0.875;
+
 end
