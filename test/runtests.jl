@@ -38,6 +38,6 @@ using Test
 
     @test NetMSA.weight(M[8, :], 0.25, 0.5, 1.0) == 0.25;
 
-    @test cumsum(NetMSA.weight.(eachrow(M[2:end, :])))[end] == 0.875;
+    @test sum(NetMSA.weight.(eachrow(M[2:end, :]))) == 0.875;
 
 end

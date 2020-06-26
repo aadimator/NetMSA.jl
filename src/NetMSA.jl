@@ -14,6 +14,13 @@ function createPeerMatrix(inputStrings::Array{String,1} ):: Matrix{Union{Missing
 end
 
 
+function mostfrequent(row)
+  counts = countmap(row)
+  delete!(counts, '-')
+  max = findmax(counts);
+  return max;
+end
+
 function aligned(row)::Bool
   row = Set(row)
   return length(row) == 1 || (length(row) == 2 && ('-' in row || missing in row))
@@ -28,9 +35,7 @@ function weight(row, w1=0.25, w2=0.5, w3=1.0)
     return w3;
   end
 
-  counts = countmap(row)
-  delete!(counts, '-')
-  max = findmax(counts)[1];
+  max = mostfrequent(row)[1];
   c = length(row);
   if aligned(row)
     return w2 * max / c;
