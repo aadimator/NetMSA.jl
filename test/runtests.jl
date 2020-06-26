@@ -22,6 +22,10 @@ using Test
 
     @test isequal(NetMSA.createPeerMatrix(L), M);
 
+    @test NetMSA.mostfrequent(M[1, :]) == (4, 'a');
+
+    @test NetMSA.mostfrequent(M[2, :]) == (3, 'b');
+
     @test NetMSA.full(M[1, :]) == true;
 
     @test NetMSA.aligned(M[2, :]) == false;
@@ -39,5 +43,9 @@ using Test
     @test NetMSA.weight(M[8, :], 0.25, 0.5, 1.0) == 0.25;
 
     @test sum(NetMSA.weight.(eachrow(M[2:end, :]))) == 0.875;
+
+    @test NetMSA.objective(M, 2) == 2.625;
+
+    @test_throws ArgumentError NetMSA.objective(M, 2, endind=9)
 
 end
