@@ -22,6 +22,8 @@ using Test
 
     @test isequal(NetMSA.createPeerMatrix(L), M);
 
+    @test NetMSA.getposition('b', 2, M).indexes == [1, 3, 4]
+
     @test NetMSA.mostfrequent(M[1, :]) == (4, 'a');
 
     @test NetMSA.mostfrequent(M[2, :]) == (3, 'b');

@@ -22,13 +22,14 @@ mutable struct Particle
 end
 
 """
-  createPeerMatrix(inputStrings):: Matrix{Union{Missing, Char}}
+    createPeerMatrix(inputStrings::Vector{String})::Matrix{Union{Missing,Char}}
 
-Create a Peer matrix, containing charachters as elements, where each input sequence
-provided in the inputStrings is represented as a column.
+Create and return a Peer matrix, containing charachters as elements, where each input sequence,
+provided in the inputStrings, is represented as a column. Missing values are represented in the
+matrix by the `missing` keyword.
 
 # Examples
-```julia-repl
+```jldoctest
 julia> createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
@@ -41,7 +42,7 @@ julia> createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
  'm'  missing  missing  'm'
 ```
 """
-function createPeerMatrix(inputStrings::Array{String,1})::Matrix{Union{Missing,Char}}
+function createPeerMatrix(inputStrings::Vector{String})::Matrix{Union{Missing,Char}}
 		col_size = size(inputStrings, 1);
 		row_size = max([length(s) for s in inputStrings]...);
 		peer_matrix = Matrix{Union{Missing,Char}}(missing, row_size, col_size);
@@ -52,9 +53,32 @@ function createPeerMatrix(inputStrings::Array{String,1})::Matrix{Union{Missing,C
 end
 
 
-function getposition(index::Int64, row, value)
-  indexes = findall(i -> i == value, skipmissing(row))
-  return Position(index, indexes);
+"""
+    getposition(value::T, rowindex::Int64, matrix::Matrix{T}) where (T)
+
+Return the Position (rowindex, [colindex1, colindex2, ...]) of the Particle
+represented by `value`, at the `rowindex` in the `matrix`.
+
+# Examples
+```jldoctest
+julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+ juila> NetMSA.getposition('b', 2, M)
+ NetMSA.Position(2, [1, 3, 4])
+```
+"""
+function getposition(value::T, rowindex::Int64, matrix::Matrix{T}) where (T)
+  indexes = findall(i -> i == value, skipmissing(matrix[rowindex, :]))
+  return Position(rowindex, indexes);
 end
 
 function mostfrequent(row)
