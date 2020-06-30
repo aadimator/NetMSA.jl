@@ -81,6 +81,29 @@ function getposition(value::T, rowindex::Int64, matrix::Matrix{T}) where (T)
   return Position(rowindex, indexes);
 end
 
+"""
+    mostfrequent(row)
+
+Return a tuple containing the most frequent element occuring in the `row`, along
+with its frequency.
+
+# Examples
+```jldoctest
+julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+ juila> NetMSA.mostfrequent(M[2, :])
+ (3, 'b')
+```
+"""
 function mostfrequent(row)
   counts = countmap(row);
   delete!(counts, '-');
@@ -88,11 +111,67 @@ function mostfrequent(row)
   return max;
 end
 
+"""
+    aligned(row)::Bool
+
+Return whether a row is aligned or not.
+
+A row is *aligned* if it only contains different occurrences of the same symbol.
+
+# Examples
+```jldoctest
+julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+ juila> NetMSA.aligned(M[1, :])
+ true
+
+ juila> NetMSA.aligned(M[2, :])
+ false
+```
+"""
 function aligned(row)::Bool
   row = Set(row)
   return (length(row) == 1 && !(missing in row)) || (length(row) == 2 && ('-' in row || missing in row))
 end
 
+"""
+    aligned(row)::Bool
+
+Return whether a row is full or not.
+
+An aligned row r is called full if no gaps (—) are added in the row r .
+That is, the number of occurrences of the symbol in the row is equal to
+the number of columns in the matrix.
+
+# Examples
+```jldoctest
+julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+ juila> NetMSA.full(M[1, :])
+ true
+
+ juila> NetMSA.full(M[2, :])
+ false
+```
+"""
 function full(row)::Bool
   return length(Set(row)) == 1 && !(missing in Set(row))
 end
@@ -103,7 +182,7 @@ function weight(row; w1=0.25, w2=0.5, w3=1.0)
   end
   if full(row)
     return w3;
-  end
+    end
 
   c = length(row);
   if c == 0
@@ -127,7 +206,7 @@ function objective(M, rowindex::Int; endindex::Int=0)
   endindex = endindex == 0 ? size(M)[1] : endindex;
   if endindex > size(M)[1]
     throw(ArgumentError("endind exceeds the matrix size"));
-  end
+    end
 
   counts = countmap(M[rowindex:endindex, :]);
   Gaps = get(counts, '-', 0);
@@ -160,7 +239,7 @@ function stopcriteria(p::Particle, M, t)
   c2 = criteria2(p);
   if c3
     display("Terminating cause of criteria 3")
-  elseif c2
+        elseif c2
     display("Terminating cause of criteria 2")
   end
   return c3 || c2;
@@ -193,7 +272,7 @@ function rowalignment(r, M)
   if aligned(row)
 #     println("aligned");
     return nothing;
-  end
+    end
 
   swarm = createswarm(r, row);
 
@@ -221,7 +300,7 @@ function rowalignment(r, M)
 #       display(stopcriteria(p, N, t) != true)
       t += 1;
       p.updated += 1;
-
+            
       N = flydown(p, N);
 #       display(N)
       display(p)
@@ -232,7 +311,7 @@ function rowalignment(r, M)
         p.bestvalue = score;
         p.updated = 0;
       end
-
+            
       if score > gvalue
         gvalue = score;
         g = deepcopy(p);
@@ -244,7 +323,7 @@ function rowalignment(r, M)
 #       display(p)
 
     end
-  end
+    end
 
   if gvalue == gₒvalue
     return nothing;
