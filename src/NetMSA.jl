@@ -1,14 +1,34 @@
+"""
+This module provides an implementation of NetMSA algorithm in Julia, which
+can be used for multiple sequence alignment.
+"""
 module NetMSA
 
 using StatsBase
 
 export createPeerMatrix, matrixalignment
 
+@doc raw"""
+Store the position of a given particle. Position ``x_s_i (r)`` of the particle
+``p_s_i`` is defined by using the row ``r`` that contains the symbol ``s_i`` as
+well as locations of the symbol ``s_i`` in the different columns (indexes of the
+columns that contain ``s_i`` ) in the row ``r``.
+"""
 mutable struct Position
     row::Int64
     indexes::Vector{Int64}
 end
 
+"""
+A particle that is used for creating swarms.
+
+# Fields
+- value::Char : Value of the particle, e.g. 'b' or 'c'
+- updated::Int64 : Number of turns till last updated
+- pos::Position : The original position of the particle
+- best::Position : The best local position of the particle
+- bestvalue::Float64 : Best local score
+"""
 mutable struct Particle
     value::Char
     updated::Int64
@@ -16,6 +36,12 @@ mutable struct Particle
     best::Position
     bestvalue::Float64
 
+    """
+        Particle(value::Char, pos::Position)
+
+    Initializes the Particle, where the best position is intialized
+    to be the current position.
+    """
     function Particle(value::Char, pos::Position)
         return new(value, 0, pos, pos, 0.0)
     end
@@ -30,7 +56,7 @@ matrix by the `missing` keyword.
 
 # Examples
 ```jldoctest
-julia> createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+julia> NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
  'b'  'c'      'b'      'b'
@@ -61,7 +87,7 @@ represented by `value`, at the `rowindex` in the `matrix`.
 
 # Examples
 ```jldoctest
-julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
  'b'  'c'      'b'      'b'
@@ -89,7 +115,7 @@ with its frequency.
 
 # Examples
 ```jldoctest
-julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
  'b'  'c'      'b'      'b'
@@ -120,7 +146,7 @@ A row is *aligned* if it only contains different occurrences of the same symbol.
 
 # Examples
 ```jldoctest
-julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
  'b'  'c'      'b'      'b'
@@ -154,7 +180,7 @@ the number of columns in the matrix.
 
 # Examples
 ```jldoctest
-julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
  'b'  'c'      'b'      'b'
@@ -188,14 +214,14 @@ w(r) = \begin{cases}
   w_3; & \text{ if r is full}   \\
 \end{cases}
 ```
-where ``n_s`` is the number of occurrences of the symbol s in the aligned row r,
-and c is the total number of columns in the row. The value of x is equal to zero
-if every symbol in the row r occurred at most once, otherwise x is equal to the
-max number of occurrences (matches) of some symbol in r.
+where ``n_s`` is the number of occurrences of the symbol ``s`` in the aligned row ``r``,
+and ``c`` is the total number of columns in the row. The value of ``x`` is equal to zero
+if every symbol in the row ``r`` occurred at most once, otherwise ``x`` is equal to the
+max number of occurrences (matches) of some symbol in ``r``.
 
 # Examples
 ```jldoctest
-julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 8×4 Array{Union{Missing, Char},2}:
  'a'  'a'      'a'      'a'
  'b'  'c'      'b'      'b'
@@ -229,14 +255,48 @@ function weight(row; w1=0.25, w2=0.5, w3=1.0)
   end
 end
 
-function objective(M, rowindex::Int; endindex::Int=0)
+@doc raw"""
+    objective(M, rowindex; endindex=0)
+
+Return the objective score of the row, calculated as follows:
+
+```math
+f(x_s(r)) = \frac{A(r) \times C(r)}{1 + Gaps(r)} \times  \sum_{j=r}^{k} w(j)
+```
+where ``A(r)`` is the number of aligned rows in M from ``r`` to the last row,
+``C(r)`` is the maximum number of matched charachters in the current row,
+``Gaps(r)`` is the number of gaps added to the matrix M from row ``r`` to the
+last row, and ``w(r)`` is the weight of the row ``r``.
+
+
+`endindex` is used to reduce the search area for Gaps, and if it is not provided,
+it would default to `size(M)[1]`.
+
+# Examples
+```jldoctest
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+ juila> NetMSA.objective(M, 2)
+ 2.625
+```
+"""
+function objective(M, rowindex; endindex=0)
   weights = sum(weight.(eachrow(M[rowindex:end, :])))
   C = mostfrequent(M[rowindex, :])[1];
   A = sum(aligned.(eachrow(M))[rowindex:end])
 
   endindex = endindex == 0 ? size(M)[1] : endindex;
   if endindex > size(M)[1]
-    throw(ArgumentError("endind exceeds the matrix size"));
+    throw(ArgumentError("endindex exceeds the matrix size"));
     end
 
   counts = countmap(M[rowindex:endindex, :]);
@@ -245,11 +305,11 @@ function objective(M, rowindex::Int; endindex::Int=0)
   return weights * (A * C) / (1 + Gaps)
 end
 
-function createswarm(rowindex::Int64, row)
-  unique = Set(skipmissing(row))
+function createswarm(rowindex::Int64, M)
+  unique = Set(skipmissing(M[rowindex, :]))
   swarm = Vector{Particle}(undef, length(unique))
   for (i, c) in enumerate(unique)
-    swarm[i] = Particle(c, getposition(rowindex, row, c))
+    swarm[i] = Particle(c, getposition(c, rowindex, M))
   end
   return swarm
 end
