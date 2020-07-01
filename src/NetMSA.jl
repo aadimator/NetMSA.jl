@@ -176,18 +176,51 @@ function full(row)::Bool
   return length(Set(row)) == 1 && !(missing in Set(row))
 end
 
+"""
+    weight(row; w1=0.25, w2=0.5, w3=1.0)
+
+Return the weight of the row, calculated as:
+
+``math
+w(r) =  \begin{equation*}
+\begin{cases}
+  w_1  \times  \frac{x}{c}; & \text{ if r is not aligned}   \\
+  w_2  \times  \frac{n_s}{c}; & \text{ if r is aligned}   \\
+  w_3; & \text{ if r is full}   \\
+\end{cases}
+\end{equation*}
+``
+where n_s is the number of occurrences of the symbol s in the aligned row r,
+and c is the total number of columns in the row. The value of x is equal to zero
+if every symbol in the row r occurred at most once, otherwise x is equal to the
+max number of occurrences (matches) of some symbol in r.
+
+# Examples
+```jldoctest
+julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+ juila> NetMSA.weight(M[1, :])
+ 1.0
+
+ juila> NetMSA.weight(M[2, :])
+ 0.1875
+```
+"""
 function weight(row; w1=0.25, w2=0.5, w3=1.0)
-  if length(Set(skipmissing(row))) == 0
-    return 0;
-  end
   if full(row)
     return w3;
-    end
-
-  c = length(row);
-  if c == 0
-    return 0;
   end
+    
+  c = length(row);
   max = mostfrequent(row)[1];
 
   if aligned(row)
@@ -231,7 +264,7 @@ function criteria3(p::Particle, M, newindex)
 end
 
 function criteria2(p::Particle)
-  return p.updated > 6;
+return p.updated > 6;
 end
 
 function stopcriteria(p::Particle, M, t)
@@ -288,7 +321,7 @@ function rowalignment(r, M)
     p.bestvalue = objective(M, r, endindex=t)
 #     display("Aligning $p");
 #     display(N)
-#     display(p)
+        #     display(p)
 
     missingp = setdiff(collect(1:size(N, 2)), p.pos.indexes)
     maxlen = maximum([length(collect(skipmissing(col))) for col in eachcol(N[:, missingp])])
@@ -300,7 +333,7 @@ function rowalignment(r, M)
 #       display(stopcriteria(p, N, t) != true)
       t += 1;
       p.updated += 1;
-            
+
       N = flydown(p, N);
 #       display(N)
       display(p)
@@ -311,7 +344,7 @@ function rowalignment(r, M)
         p.bestvalue = score;
         p.updated = 0;
       end
-            
+
       if score > gvalue
         gvalue = score;
         g = deepcopy(p);
