@@ -182,17 +182,13 @@ end
 Return the weight of the row, calculated as:
 
 ```math
-\frac{n!}{k!(n - k)!} = \binom{n}{k}
-```
-
-```math
 w(r) = \begin{cases}
   w_1  \times  \frac{x}{c}; & \text{ if r is not aligned}   \\
   w_2  \times  \frac{n_s}{c}; & \text{ if r is aligned}   \\
   w_3; & \text{ if r is full}   \\
 \end{cases}
 ```
-where n_s is the number of occurrences of the symbol s in the aligned row r,
+where ``n_s`` is the number of occurrences of the symbol s in the aligned row r,
 and c is the total number of columns in the row. The value of x is equal to zero
 if every symbol in the row r occurred at most once, otherwise x is equal to the
 max number of occurrences (matches) of some symbol in r.
