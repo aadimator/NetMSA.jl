@@ -54,7 +54,7 @@ end
 
 
 """
-    getposition(value::T, rowindex::Int64, matrix::Matrix{T}) where (T)
+    getposition(value, rowindex, matrix)
 
 Return the Position (rowindex, [colindex1, colindex2, ...]) of the Particle
 represented by `value`, at the `rowindex` in the `matrix`.
@@ -76,7 +76,7 @@ julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
  NetMSA.Position(2, [1, 3, 4])
 ```
 """
-function getposition(value::T, rowindex::Int64, matrix::Matrix{T}) where (T)
+function getposition(value, rowindex, matrix)
   indexes = findall(i -> i == value, skipmissing(matrix[rowindex, :]))
   return Position(rowindex, indexes);
 end
@@ -182,6 +182,10 @@ end
 Return the weight of the row, calculated as:
 
 ```math
+\frac{n!}{k!(n - k)!} = \binom{n}{k}
+```
+
+```math
 w(r) =  \\begin{gather*}
 \\begin{cases}
   w_1  \\times  \\frac{x}{c}; & \\text{ if r is not aligned}   \\
@@ -219,7 +223,7 @@ function weight(row; w1=0.25, w2=0.5, w3=1.0)
   if full(row)
     return w3;
   end
-    
+
   c = length(row);
   max = mostfrequent(row)[1];
 
