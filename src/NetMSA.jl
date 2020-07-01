@@ -176,7 +176,7 @@ function full(row)::Bool
   return length(Set(row)) == 1 && !(missing in Set(row))
 end
 
-"""
+@doc raw"""
     weight(row; w1=0.25, w2=0.5, w3=1.0)
 
 Return the weight of the row, calculated as:
@@ -222,7 +222,7 @@ julia> M = createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
 function weight(row; w1=0.25, w2=0.5, w3=1.0)
   if full(row)
     return w3;
-  end
+    end
 
   c = length(row);
   max = mostfrequent(row)[1];
@@ -337,7 +337,7 @@ function rowalignment(r, M)
 #       display(stopcriteria(p, N, t) != true)
       t += 1;
       p.updated += 1;
-
+            
       N = flydown(p, N);
 #       display(N)
       display(p)
@@ -348,7 +348,7 @@ function rowalignment(r, M)
         p.bestvalue = score;
         p.updated = 0;
       end
-
+            
       if score > gvalue
                 gvalue = score;
         g = deepcopy(p);
