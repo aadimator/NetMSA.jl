@@ -186,13 +186,11 @@ Return the weight of the row, calculated as:
 ```
 
 ```math
-w(r) =  \begin{gather*}
-\begin{cases}
+w(r) = \begin{cases}
   w_1  \times  \frac{x}{c}; & \text{ if r is not aligned}   \\
   w_2  \times  \frac{n_s}{c}; & \text{ if r is aligned}   \\
   w_3; & \text{ if r is full}   \\
 \end{cases}
-\end{gather*}
 ```
 where n_s is the number of occurrences of the symbol s in the aligned row r,
 and c is the total number of columns in the row. The value of x is equal to zero
