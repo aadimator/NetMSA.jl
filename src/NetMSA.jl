@@ -182,15 +182,13 @@ end
 Return the weight of the row, calculated as:
 
 ```math
-\begin{aligned}
-w(r) =  \begin{equation*}
-\begin{cases}
-  w_1  \times  \frac{x}{c}; & \text{ if r is not aligned}   \\
+w(r) =  \\begin{gather*}
+\\begin{cases}
+  w_1  \\times  \\frac{x}{c}; & \\text{ if r is not aligned}   \\
   w_2  \times  \frac{n_s}{c}; & \text{ if r is aligned}   \\
   w_3; & \text{ if r is full}   \\
-\end{cases}
-\end{equation*}
-\end{aligned}
+\\end{cases}
+\\end{gather*}
 ```
 where n_s is the number of occurrences of the symbol s in the aligned row r,
 and c is the total number of columns in the row. The value of x is equal to zero
@@ -221,7 +219,7 @@ function weight(row; w1=0.25, w2=0.5, w3=1.0)
   if full(row)
     return w3;
   end
-
+    
   c = length(row);
   max = mostfrequent(row)[1];
 
