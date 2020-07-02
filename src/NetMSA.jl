@@ -305,6 +305,30 @@ function objective(M, rowindex; endindex=0)
   return weights * (A * C) / (1 + Gaps)
 end
 
+"""
+    createswarm(rowindex::Int64, M)
+
+Create a swarm containing unique Particles in the current row.
+
+# Examples
+```jldoctest
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+juila> NetMSA.createswarm(2, M)
+2-element Array{NetMSA.Particle,1}:
+ NetMSA.Particle('c', 0, NetMSA.Position(2, [2]), NetMSA.Position(2, [2]), 0.0)
+ NetMSA.Particle('b', 0, NetMSA.Position(2, [1, 3, 4]), NetMSA.Position(2, [1, 3, 4]), 0.0)
+```
+"""
 function createswarm(rowindex::Int64, M)
   unique = Set(skipmissing(M[rowindex, :]))
   swarm = Vector{Particle}(undef, length(unique))
@@ -314,24 +338,50 @@ function createswarm(rowindex::Int64, M)
   return swarm
 end
 
-function criteria3(p::Particle, M, newindex)
-#   display(newindex)
-#   display(M[newindex, :])
-#   display(length(p.pos.indexes) != length(getposition(newindex, M[newindex, :], p.value).indexes))
-  return length(p.pos.indexes) != length(getposition(newindex, M[newindex, :], p.value).indexes)
+function criteria3(p::Particle, newindex::Int, M)
+  return length(p.pos.indexes) != length(getposition(p.value, newindex, M).indexes)
 end
 
-function criteria2(p::Particle)
-return p.updated > 6;
+function criteria2(p::Particle; threshold::Int=5)
+return p.updated > threshold;
 end
 
-function stopcriteria(p::Particle, M, t)
-  c3 = criteria3(p, M, t);
-  c2 = criteria2(p);
-  if c3
-    display("Terminating cause of criteria 3")
-        elseif c2
-    display("Terminating cause of criteria 2")
+"""
+    stopcriteria(p::Particle, newindex, M; threshold::Int=5, debug=false)
+
+Check whether a stopping criteria has been met. Two stopping criteria
+are checked in this function:
+  - Criteria 2: If a particle hasn't updated its best score in the last `threshold` turns.
+  - Criteria 3: If a particle moves to a new row which already contains the same symbol as that of the particle.
+
+# Examples
+```jldoctest
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+juila> p = NetMSA.Particle('b', NetMSA.getposition('b', 2, M));
+NetMSA.Particle('b', 0, Main.NetMSA.Position(2, [1, 3, 4]), Main.NetMSA.Position(2, [1, 3, 4]), 0.0)
+
+julia> NetMSA.stopcriteria(p, 3, M; debug=true)
+"Terminating because of criteria 3"
+true
+```
+"""
+function stopcriteria(p::Particle, newindex, M; threshold::Int=5, debug=false)
+  c3 = criteria3(p, newindex, M);
+  c2 = criteria2(p; threshold=threshold);
+  if debug && c3
+    display("Terminating because of criteria 3")
+  elseif debug && c2
+    display("Terminating because of criteria 2")
   end
   return c3 || c2;
 end
@@ -340,91 +390,179 @@ function remove_missing_rows(M)
   return M[[length(Set(skipmissing(r))) != 0 for r in eachrow(M)], :]
 end
 
+"""
+    flydown(p, M; stride=1)
+
+Fly down the given particle by `stride`.
+
+# Examples
+```jldoctest
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+juila> p = NetMSA.Particle('b', NetMSA.getposition('b', 2, M));
+NetMSA.Particle('b', 0, Main.NetMSA.Position(2, [1, 3, 4]), Main.NetMSA.Position(2, [1, 3, 4]), 0.0)
+
+julia> NetMSA.flydown(p, M)
+9×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ '-'  'c'      '-'      '-'
+ 'b'  'b'      'b'      'b'
+ 'c'  'c'      'c'      'c'
+ 'b'  'f'      'h'      'b'
+ 'c'  'g'      'i'      'c'
+ 'd'  missing  'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+julia> NetMSA.flydown(p, M; stride=3)
+11×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ '-'  'c'      '-'      '-'
+ '-'  'b'      '-'      '-'
+ '-'  'c'      '-'      '-'
+ 'b'  'f'      'b'      'b'
+ 'c'  'g'      'c'      'c'
+ 'b'  missing  'h'      'b'
+ 'c'  missing  'i'      'c'
+ 'd'  missing  'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+```
+"""
 function flydown(p, M; stride=1)
   notpcols = setdiff(collect(1:size(M, 2)), p.pos.indexes)
   colsize = size(M, 2)
   pos = p.pos
   newrows = fill('-', (stride, colsize))
   M = vcat(M[1:pos.row - 1, :], reshape(newrows, stride, colsize), M[pos.row:end, :])
-  display(M)
   for i in collect(pos.row + stride:size(M, 1))
     M[i - stride,notpcols] = M[i, notpcols]
     M[i, notpcols] .= missing
   end
-  display(M)
   M = remove_missing_rows(M)
-  return M
 end
 
-function rowalignment(r, M)
-  row = M[r, :];
-#   display(row);
-#   println(aligned(row))
-  if aligned(row)
-#     println("aligned");
-    return nothing;
-    end
+"""
+    rowalignment(rowindex, M)
 
-  swarm = createswarm(r, row);
+Return Particle with best position that aligns (maximizes the objective score)
+the given row in the matrix.
+
+# Examples
+```jldoctest
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+juila> p = NetMSA.Particle('b', NetMSA.getposition('b', 2, M));
+NetMSA.Particle('b', 0, Main.NetMSA.Position(2, [1, 3, 4]), Main.NetMSA.Position(2, [1, 3, 4]), 0.0)
+
+julia> NetMSA.rowalignment(2, M)
+NetMSA.Particle('c', 0, Main.NetMSA.Position(2, [2]), Main.NetMSA.Position(3, [1]), 9.0)
+```
+"""
+function rowalignment(rowindex, M)
+  row = M[rowindex, :];
+  if aligned(row)
+    return nothing;
+  end
+
+  swarm = createswarm(rowindex, M);
 
   gₒ = g = swarm[1];
-  gₒvalue = gvalue = objective(M, r, endindex=r);
+  gₒvalue = gvalue = objective(M, rowindex, endindex=rowindex);
   cols = size(row, 1)
 
   for p in swarm
 
-    t = r;
+    t = rowindex;
     N = copy(M);
 
-    p.bestvalue = objective(M, r, endindex=t)
-#     display("Aligning $p");
-#     display(N)
-        #     display(p)
+    p.bestvalue = objective(M, rowindex, endindex=t)
 
     missingp = setdiff(collect(1:size(N, 2)), p.pos.indexes)
     maxlen = maximum([length(collect(skipmissing(col))) for col in eachcol(N[:, missingp])])
     criteria1 = maxlen;
 
-#     display(criteria1)
 
-    while stopcriteria(p, N, t) != true && t < criteria1
-#       display(stopcriteria(p, N, t) != true)
+    while stopcriteria(p, t, N) != true && t < criteria1
       t += 1;
       p.updated += 1;
-            
+
       N = flydown(p, N);
-#       display(N)
-      display(p)
-      score = objective(N, r);
-      display(score);
-#       display(p.bestvalue);
+      score = objective(N, rowindex);
       if score > p.bestvalue
         p.bestvalue = score;
         p.updated = 0;
       end
-            
+
       if score > gvalue
-                gvalue = score;
+        gvalue = score;
         g = deepcopy(p);
-        g.best = getposition(t, N[t, :], p.value);
+        g.best = getposition(p.value, t, N);
         g.bestvalue = score;
-      end
-
-
-        #       display(p)
+    end
 
     end
-    end
+  end
 
   if gvalue == gₒvalue
     return nothing;
   end
+
   return g;
 end
 
+
+"""
+    matrixalignment(M)
+
+Align the matrix using NetMSA algorithm.
+
+# Examples
+```jldoctest
+julia> M = NetMSA.createPeerMatrix(["abcbcdem", "acbcfg", "abchimn", "abcbcjkm"])
+8×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'      'a'      'a'
+ 'b'  'c'      'b'      'b'
+ 'c'  'b'      'c'      'c'
+ 'b'  'c'      'h'      'b'
+ 'c'  'f'      'i'      'c'
+ 'd'  'g'      'm'      'j'
+ 'e'  missing  'n'      'k'
+ 'm'  missing  missing  'm'
+
+juila> NetMSA.matrixalignment(M)
+9×4 Array{Union{Missing, Char},2}:
+ 'a'  'a'  'a'  'a'
+ 'b'  '-'  'b'  'b'
+ 'c'  'c'  'c'  'c'
+ 'b'  'b'  '-'  'b'
+ 'c'  'c'  '-'  'c'
+ 'd'  'f'  'h'  'j'
+ 'e'  'g'  'i'  'k'
+ 'm'  '-'  'm'  'm'
+ '-'  '-'  'n'  '-'
+```
+"""
 function matrixalignment(M)
   for (index, row) in enumerate(eachrow(M))
-  #   println("$index: $row")
     g = rowalignment(index, M)
     if !isnothing(g)
       M = flydown(g, M, stride=g.best.row - g.pos.row)
