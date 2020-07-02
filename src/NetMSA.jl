@@ -8,7 +8,7 @@ using StatsBase
 
 export createPeerMatrix, matrixalignment
 
-@doc raw"""
+"""
 Store the position of a given particle. Position ``x_s_i (r)`` of the particle
 ``p_s_i`` is defined by using the row ``r`` that contains the symbol ``s_i`` as
 well as locations of the symbol ``s_i`` in the different columns (indexes of the
